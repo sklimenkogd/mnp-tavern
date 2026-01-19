@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Gilded Blade Tavern</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Almendra:wght@700&family=MedievalSharp&display=swap');
+
+        :root {
+            --wood: #1a0f0a;
+            --gold: #f1c40f;
+            --win-gold: #fff7bc;
+            --lose: #ff3e3e;
+            --chance: #9b59b6;
+            --chance-top-glow: #8e44ad;
+            --board-size: 94vmin;
+            --nav-height: 70px;
+            --dice-color: #6c3483;
+        }
+
+        body {
+            font-family: 'MedievalSharp', serif;
+            background: #1a0f0a;
+            color: #f4e4bc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            overflow: hidden;
+            touch-action: manipulation;
+            height: 100vh;
+            user-select: none;
+        }
+
+        /* HEADER */
+        #ui-top {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            padding: 10px 0;
+            background: #1a1a1a;
+            border-bottom: 3px solid #4a3528;
+            font-family: 'Almendra', serif;
+            font-size: 1.4rem;
+            z-index: 100;
+            height: 40px;
+            flex-shrink: 0;
+        }
+        #balance { color: #fff; text-shadow: 0 0 10px var(--gold); }
+        #level-display { color: var(--gold); }
+
+        /* VIEW CONTAINERS */
+        .view-section {
+            width: 100%;
+            height: calc(100% - 60px - var(--nav-height)); 
+            display: none; 
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .view-section.active { display: flex; }
+
+        /* === GAME VIEW === */
+        #game-area {
+            position: relative;
+            width: var(--board-size);
+            height: var(--board-size);
+            max-width: 500px;
+            max-height: 500px;
+            border: 6px solid #2c1e14;
+            box-shadow: 0 0 50px rgba(0,0,0,1);
+            margin-bottom: 10px;
+            flex-shrink: 0;
+            overflow: hidden; 
+        }
+
+        #inner-bg {
+            position: absolute;
+            top: 11.11%; left: 11.11%;
+            width: 77.78%; height: 77.78%;
+            background-image: url('https://i.postimg.cc/RV750cJ6/IMG-20260115-080440.png');
+            background-size: cover;
+            background-position: center;
+            z-index: 1;
+            opacity: 0.8;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            grid-template-rows: repeat(9, 1fr);
+            width: 100%; height: 100%;
+            background: #111;
+        }
+
+        .cell {
+            background: #f4e4bc;
+            background-image: url('https://www.transparenttextures.com/patterns/p6.png');
+            color: #2c1e14;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            z-index: 2;
+            border: 0.5px solid rgba(0,0,0,0.2);
+            text-shadow: 0 0 2px rgba(255,255,255,0.5);
+            position: relative;
+        }
+
+        .cell.corner { background: #8b6e41; color: #fff; }
+        .cell.railway { background: #ffd700; color: #1a0f0a; box-shadow: inset 0 0 10px #ffed4a; border: 1px solid #fff; }
+        .cell.fortune { background: #2c3e50; color: #3498db; box-shadow: inset 0 0 10px #2980b9; border: 1px solid #85c1e9; }
+        .cell.lose { background: #7c2a2a; color: #fff; }
+        .cell.chance { background: #4a235a; color: #e0b0ff; box-shadow: inset 0 0 15px var(--chance-top-glow); animation: purplePulse 2s infinite alternate; }
+        @keyframes purplePulse { 0% { box-shadow: inset 0 0 5px var(--chance-top-glow); } 100% { box-shadow: inset 0 0 20px var(--chance-top-glow); } }
+
+        .mult { font-size: 13px; font-family: 'Almendra'; margin-top: 1px; color: #000; }
+        .cell.lose .mult { color: #fff; }
+        .cell.railway .mult { color: #000; }
+        .cell.fortune .mult { color: #fff; }
+
+        #player {
+            width: 7%; height: 7%;
+            background: radial-gradient(circle, #800000 30%, #400000 100%);
+            border: 2px solid var(--gold);
+            border-radius: 50%;
+            position: absolute;
+            z-index: 100;
+            transition: top 0.15s ease-out, left 0.15s ease-out;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.8);
+        }
+
+        .hopping { animation: hop 0.15s ease-out; }
+        @keyframes hop { 0% { transform: scale(1) translateY(0); } 50% { transform: scale(1.3) translateY(-15px); } 100% { transform: scale(1) translateY(0); } }
+
+        #flash-container {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 90%; height: 70%; pointer-events: none; z-index: 50;
+            display: flex; flex-direction: column-reverse; justify-content: center; align-items: center;
+        }
+
+        .flash-text {
+            font-weight: 900; font-family: 'Almendra'; line-height: 0.75;
+            opacity: 0; animation: popStatic 1.5s ease-out forwards;
+            text-align: center; margin: 2px 0;
+        }
+        @keyframes popStatic { 0% { transform: scale(0.5); opacity: 0; } 15% { transform: scale(1.3); opacity: 1; } 30% { transform: scale(1.0); opacity: 1; } 80% { opacity: 1; transform: scale(1.0); } 100% { opacity: 0; transform: scale(0.9); } }
+
+        .game-controls { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 10px; flex-shrink: 0; }
+        #calc-display { font-family: 'MedievalSharp'; font-size: 16px; color: #aaa; height: 20px; display: flex; gap: 8px; align-items: center; }
+        .calc-part { color: var(--gold); font-weight: bold; }
+        .dice-box { display: flex; gap: 15px; }
+        .die { width: 50px; height: 50px; background: #fff; color: #000; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .die.crit { background: var(--gold); box-shadow: 0 0 20px var(--gold); }
+        .btn-roll { width: 85%; padding: 15px; font-size: 32px; background: #3d2b1f; color: #f4e4bc; border: 2px solid var(--gold); border-radius: 8px; font-family: 'MedievalSharp'; box-shadow: 0 4px 0 #1a0f0a; cursor: pointer; }
+        .btn-roll:active { transform: translateY(2px); box-shadow: 0 2px 0 #1a0f0a; }
+        .btn-roll:disabled { background: #555; border-color: #888; color: #aaa; cursor: not-allowed; }
+
+        /* === OVERLAYS === */
+        .overlay-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 200;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            gap: 10px; backdrop-filter: blur(3px);
+        }
+
+        /* NEW PICKING GAME UI */
+        .bonus-title { font-family: 'Almendra'; font-size: 28px; color: #e0b0ff; text-shadow: 0 0 15px #9b59b6; margin-bottom: 5px; text-align: center; line-height: 1; }
+        
+        #picking-dashboard {
+            width: 85%; background: rgba(0,0,0,0.6); border: 2px solid #9b59b6;
+            border-radius: 8px; padding: 8px; text-align: center;
+            margin-bottom: 10px;
+        }
+        .pick-formula { font-size: 14px; color: #ccc; margin-bottom: 2px; font-family: 'MedievalSharp'; }
+        .pick-formula-active { color: #fff; font-weight: bold; }
+        .pick-total { font-size: 24px; color: var(--gold); font-family: 'Almendra'; text-shadow: 0 0 10px gold; margin-top: 2px; }
+
+        .pick-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+            width: 70%; max-width: 250px; aspect-ratio: 1;
+        }
+        .pick-tile {
+            width: 100%; height: 100%;
+            background: #2c1e14; border: 2px solid #5e3b70;
+            border-radius: 6px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 20px; color: #5e3b70;
+            transition: transform 0.1s, background 0.3s;
+            box-shadow: 0 3px 0 #1a0f0a;
+        }
+        .pick-tile:active { transform: translateY(2px); box-shadow: 0 1px 0 #1a0f0a; }
+        .pick-tile.revealed { background: #4a235a; border-color: #e0b0ff; color: #fff; cursor: default; box-shadow: inset 0 0 5px #000; transform: none; }
+        .pick-tile.add { background: #27ae60; border-color: #2ecc71; text-shadow: 0 2px 0 #000; }
+        .pick-tile.mult { background: #8e44ad; border-color: #e0b0ff; text-shadow: 0 2px 0 #000; }
+        
+        .picks-remaining { font-size: 16px; color: #aaa; margin-top: 10px; }
+        #picks-count { color: #fff; font-weight: bold; font-size: 20px; }
+
+        /* WHEEL UI */
+        .wheels-container { display: flex; gap: 5px; flex-wrap: nowrap; justify-content: center; width: 95%; }
+        .wheel { flex: 1; max-width: 60px; height: 80px; background: #2c1e14; border: 2px solid #3498db; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 15px rgba(52, 152, 219, 0.4); transition: transform 0.1s; }
+        .wheel-val { font-size: 18px; font-weight: bold; color: #fff; }
+        .wheel-label { font-size: 9px; color: #aaa; margin-top: 5px; text-align: center; }
+        .wheel.locked { border-color: #f1c40f; box-shadow: 0 0 15px #f1c40f; }
+        .bonus-result-text { font-size: 20px; color: var(--gold); font-family: 'Almendra'; min-height: 25px; text-align: center; margin-top: 5px;}
+
+        /* POPUP - Centered in Game Area */
+        #chance-win-popup, #combat-result-popup { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            width: 85%; max-width: 300px; height: auto; padding: 20px 10px; 
+            background: radial-gradient(circle, #2c1e14 0%, #000 100%); 
+            border: 3px solid var(--gold); border-radius: 12px; 
+            box-shadow: 0 0 30px rgba(0,0,0,0.8); 
+            z-index: 300; display: none; flex-direction: column; align-items: center; text-align: center; 
+            animation: zoomIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); 
+        }
+        #combat-result-popup { border-color: #fff; background: radial-gradient(circle, #1a252f 0%, #000 100%); }
+
+        @keyframes zoomIn { 0% { transform: translate(-50%, -50%) scale(0); } 100% { transform: translate(-50%, -50%) scale(1); } }
+        .c-win-title { font-family: 'Almendra'; font-size: 32px; color: #e0b0ff; margin-bottom: 5px; text-shadow: 0 0 10px #9b59b6; line-height: 1; }
+        .c-calc-header { font-size: 12px; color: var(--gold); margin-bottom: 2px; font-family: 'MedievalSharp'; text-transform: uppercase; letter-spacing: 1px; }
+        .c-calc-box { background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px; margin: 5px 0 10px 0; width: 90%; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
+        .c-calc-val { color: var(--gold); font-weight: bold; font-family: 'MedievalSharp'; font-size: 16px; }
+        .c-calc-op { color: #888; font-size: 12px; }
+        .c-win-amount { font-family: 'MedievalSharp'; font-size: 40px; color: var(--gold); text-shadow: 0 0 20px gold; margin: 5px 0; font-weight: bold; }
+        .c-win-instr { font-size: 14px; color: #fff; opacity: 0.8; animation: pulse 1s infinite; margin-top: 5px; }
+
+        /* MONSTER FIGHT */
+        #combat-overlay { z-index: 200; }
+        .combat-header { width: 100%; display: flex; flex-direction: column; gap: 5px; padding: 10px; background: rgba(0,0,0,0.5); align-items: center; }
+        .enemy-name { font-size: 24px; color: #ff6b6b; font-family: 'Almendra'; text-align: center; }
+        .mob-multiplier-banner { color: var(--win-gold); font-size: 18px; font-weight: bold; text-shadow: 0 0 5px gold; margin: 2px 0; text-align: center; font-family: 'MedievalSharp'; border: 2px solid var(--gold); padding: 2px 10px; border-radius: 4px; background: rgba(0,0,0,0.5); }
+        #timer-display { font-size: 32px; color: #fff; font-family: 'Almendra'; text-shadow: 0 0 10px red; margin-top: 2px; }
+        .combat-arena { flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        #enemy-sprite { font-size: 100px; animation: float 2s infinite ease-in-out; text-shadow: 0 0 20px rgba(255,0,0,0.5); margin-bottom: 10px; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        @keyframes shakeHit { 0% { transform: translateX(0); } 25% { transform: translateX(10px); } 75% { transform: translateX(-10px); } 100% { transform: translateX(0); } }
+        .combat-log { position: absolute; width: 100%; height: 100%; pointer-events: none; }
+        .dmg-float { position: absolute; font-weight: bold; font-size: 20px; animation: flyUp 0.8s ease-out forwards; text-shadow: 0 0 5px black; }
+        .dmg-float.crit-float { font-size: 32px; z-index: 10; }
+        .dmg-player { color: var(--gold); left: 60%; }
+        .dmg-player.crit-float { color: #fff; text-shadow: 0 0 10px gold; }
+        @keyframes flyUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-100px) scale(1.5); opacity: 0; } }
+        .player-status { width: 100%; padding: 10px; display: flex; flex-direction: column; gap: 8px; align-items: center; background: rgba(0,0,0,0.8); border-top: 2px solid #444; }
+        .combat-counter-box { display: flex; flex-direction: column; align-items: center; margin-bottom: 5px; }
+        .cc-label { font-size: 10px; color: #aaa; text-transform: uppercase; }
+        .cc-val { font-size: 28px; color: var(--win-gold); font-weight: bold; text-shadow: 0 0 10px var(--gold); font-family: 'Almendra'; }
+        .btn-attack { width: 90%; padding: 15px; font-size: 24px; font-family: 'MedievalSharp'; background: #c0392b; color: white; border: 3px solid #e74c3c; border-radius: 8px; box-shadow: 0 4px 0 #922b21; cursor: pointer; text-transform: uppercase; user-select: none; }
+        .btn-attack:active { transform: translateY(4px); box-shadow: 0 1px 0 #922b21; }
+        .btn-attack:disabled { background: #555; border-color: #777; box-shadow: none; cursor: not-allowed; }
+        #countdown { position: absolute; font-size: 120px; color: white; font-weight: bold; text-shadow: 0 0 20px black; z-index: 3000; pointer-events: none; }
+
+        .cr-title { font-family: 'Almendra'; font-size: 32px; color: #fff; margin-bottom: 10px; }
+        .cr-row { width: 100%; display: flex; justify-content: space-between; font-size: 18px; margin: 5px 0; color: #ccc; border-bottom: 1px solid #333; padding-bottom: 2px;}
+        .cr-val { color: var(--gold); font-weight: bold; }
+        .cr-total { font-size: 32px; color: var(--win-gold); font-weight: bold; margin-top: 15px; }
+
+        /* BUILD & NAV */
+        #view-build { background: #0d0d0d; padding: 10px; justify-content: flex-start; }
+        .tavern-container { display: flex; flex-direction: column; gap: 10px; width: 95%; max-width: 500px; height: 100%; overflow-y: auto; }
+        .tavern-card { background: #1a1a1a; border: 2px solid #3d2b1f; border-radius: 6px; padding: 8px; display: flex; flex-direction: row; align-items: center; gap: 12px; height: 80px; flex-shrink: 0; }
+        .tavern-img { width: 65px; height: 65px; background: #000; border: 1px solid #444; display: flex; align-items: center; justify-content: center; font-size: 40px; border-radius: 4px; flex-shrink: 0; color: #fff; }
+        .tavern-details { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+        .tavern-name { font-size: 18px; color: var(--gold); font-family: 'Almendra'; line-height: 1; }
+        .progress-steps { display: flex; gap: 4px; }
+        .step { width: 12px; height: 12px; background: #333; border: 1px solid #555; border-radius: 2px; }
+        .step.filled { background: var(--gold); border-color: #f39c12; box-shadow: 0 0 5px var(--gold); }
+        .btn-upgrade-compact { width: 80px; height: 100%; background: #27ae60; color: white; border: none; border-radius: 4px; font-family: 'MedievalSharp'; font-size: 14px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; padding: 0 5px; flex-shrink: 0; box-shadow: 0 3px 0 #1e8449; }
+        .btn-upgrade-compact:active { transform: translateY(2px); box-shadow: 0 1px 0 #1e8449; }
+        .btn-upgrade-compact:disabled { background: #444; color: #888; box-shadow: none; cursor: not-allowed; }
+        .cost-text { font-size: 13px; font-weight: bold; color: var(--win-gold); }
+        .btn-skip-level { width: 95%; max-width: 500px; padding: 12px; background: #4a235a; border: 2px solid #9b59b6; color: #fff; font-family: 'MedievalSharp'; font-size: 16px; border-radius: 6px; margin-bottom: 10px; cursor: pointer; box-shadow: 0 0 10px #9b59b6; flex-shrink: 0; }
+        .btn-skip-level:active { transform: translateY(2px); }
+        
+        /* RESET BUTTON MOVED TO TOP */
+        .btn-reset-container { width: 100%; display: flex; justify-content: center; padding-bottom: 5px; margin-bottom: 5px; }
+        .btn-reset { 
+            background: #922b21; color: #fff; border: 2px solid #c0392b; 
+            padding: 5px 15px; font-size: 12px; font-family: 'MedievalSharp'; 
+            border-radius: 4px; cursor: pointer; box-shadow: 0 2px 0 #641e16; opacity: 0.8;
+        }
+        .btn-reset:active { transform: translateY(2px); box-shadow: 0 1px 0 #641e16; }
+        
+        #bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height); background: #1a1a1a; border-top: 2px solid var(--gold); display: flex; z-index: 200; flex-shrink: 0; }
+        .nav-btn { flex: 1; background: none; border: none; color: #666; font-family: 'Almendra'; font-size: 20px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .nav-btn.active { background: #2c1e14; color: var(--gold); text-shadow: 0 0 5px var(--gold); border-top: 4px solid var(--gold); }
+        .nav-icon { font-size: 24px; margin-bottom: 2px; }
+
+    </style>
+</head>
+<body>
+
+    <div id="ui-top">
+        <div>GOLD: <span id="balance">0</span></div>
+        <div>LEVEL: <span id="level-display">1x</span></div>
+    </div>
+
+    <div id="view-game" class="view-section active">
+        <div id="game-area">
+            <div id="inner-bg"></div>
+            <div id="flash-container"></div>
+            <div id="player"></div>
+            <div class="board" id="board"></div>
+            
+            <!-- OVERLAYS MOVED INSIDE GAME AREA -->
+            
+            <div id="picking-overlay" class="overlay-screen">
+                <div class="bonus-title">TREASURE TROVE</div>
+                
+                <div id="picking-dashboard">
+                    <div class="pick-formula">
+                        (<span id="pick-base" class="pick-formula-active">0</span> + 
+                        <span id="pick-adds" class="pick-formula-active">0</span>) × 
+                        <span id="pick-mult" class="pick-formula-active">1</span>
+                    </div>
+                    <div class="pick-formula" style="font-size:12px; color:#888;">
+                        × Lvl <span id="pick-lvl">1</span> × Sword <span id="pick-sw">1</span>
+                    </div>
+                    <div class="pick-total">WIN: $<span id="pick-total-val">0</span></div>
+                </div>
+
+                <div class="pick-grid" id="pick-grid"></div>
+                
+                <div class="picks-remaining">PICKS LEFT: <span id="picks-count">3</span></div>
+            </div>
+
+            <div id="wheel-overlay" class="overlay-screen">
+                <div class="bonus-title">MYSTIC FORTUNE</div>
+                <div class="wheels-container" id="wheels-area"></div>
+                <div class="bonus-result-text" id="wheel-result-text">Tap wheels to spin!</div>
+            </div>
+
+            <div id="chance-win-popup" onclick="collectChanceWin()">
+                <div class="c-win-title" id="c-win-title">BONUS WIN</div>
+                <div class="c-calc-header" id="c-calc-header">Sum x Multipliers x Level x Sword</div>
+                <div class="c-calc-box">
+                    <div id="c-breakdown" class="c-calc-values">...</div>
+                </div>
+                <div class="c-win-amount" id="c-popup-amount">$0</div>
+                <div class="c-win-instr">TAP TO COLLECT</div>
+            </div>
+
+            <div id="combat-overlay" class="overlay-screen">
+                <div id="countdown"></div>
+                <div class="combat-header">
+                    <div class="enemy-name" id="mob-name">Dragon</div>
+                    <div class="mob-multiplier-banner" id="mob-mult-display">MULTIPLIER: 1x</div>
+                    <div id="timer-display">Ready?</div>
+                </div>
+                <div class="combat-arena">
+                    <div id="enemy-sprite">🐉</div>
+                    <div class="combat-log" id="combat-log"></div>
+                </div>
+                <div class="player-status">
+                    <div class="combat-counter-box">
+                        <span class="cc-label">Total Gold Earned</span>
+                        <span class="cc-val" id="combat-damage-total">0</span>
+                    </div>
+                    <button class="btn-attack" id="btn-attack" onclick="startAutoCombat()">AUTO BATTLE</button>
+                </div>
+            </div>
+
+            <div id="combat-result-popup" onclick="closeCombatResult()">
+                <div class="cr-title" id="cr-title">VICTORY!</div>
+                <div class="cr-row"><span>Total Gold:</span> <span class="cr-val" id="cr-total">0</span></div>
+                <div class="c-win-instr">TAP TO CLOSE</div>
+            </div>
+        </div>
+
+        <div class="game-controls">
+            <div id="calc-display">Roll the bones...</div>
+            <div class="dice-box">
+                <div id="d1" class="die">?</div>
+                <div id="d2" class="die">?</div>
+            </div>
+            <button class="btn-roll" id="main-roll-btn" onclick="playTurn()">GO!</button>
+        </div>
+    </div>
+
+    <div id="view-build" class="view-section">
+        <button class="btn-skip-level" onclick="triggerLevelUp()">✨ ASCEND (SKIP LEVEL) ✨</button>
+        <div class="btn-reset-container">
+            <button class="btn-reset" onclick="hardReset()">RESET DATA</button>
+        </div>
+        <div class="tavern-container" id="tavern-list"></div>
+    </div>
+
+    <div id="bottom-nav">
+        <button class="nav-btn active" onclick="switchView('game')"><span class="nav-icon">⚔️</span>PLAY</button>
+        <button class="nav-btn" onclick="switchView('build')"><span class="nav-icon">🔨</span>BUILD</button>
+    </div>
+
+<script>
+    // === MATH CONFIGURATION ===
+    const GAME_CONFIG = {
+        boardSize: 32,
+        passGoBase: 100,
+        moveDiceCount: 2,
+        moveDieSides: 6,
+        swordCritVal: 3,
+        sideMults: [2, 3, 5, 10],
+        fight: {
+            attacks: [10, 15, 20, 25], 
+            dice: 4,
+            sides: 6,
+            critMult: 3,
+            mobMin: 1,
+            mobMax: 10 
+        },
+        wheels: {
+            t12Count: 3,
+            t28Count: 4,
+            ranges: [
+                { min: 1, max: 4 },
+                { min: 1, max: 6 },
+                { min: 1, max: 8 },
+                { min: 1, max: 20 }
+            ]
+        },
+        economy: {
+            // ~1.5x cheaper base prices (330 to 1330 range)
+            taverns: [
+                { base: 330, mult: 1.5 },
+                { base: 500, mult: 1.5 },
+                { base: 660, mult: 1.5 },
+                { base: 1000, mult: 1.5 },
+                { base: 1330, mult: 1.5 }
+            ]
+        }
+    };
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSfx(freqs, type, duration, vol=0.2, slide=false) {
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freqs[0], audioCtx.currentTime);
+        if(slide) osc.frequency.exponentialRampToValueAtTime(freqs[1], audioCtx.currentTime + duration);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration);
+    }
+    function playTap() { playSfx([200], 'square', 0.08, 0.15); playSfx([100], 'sine', 0.08, 0.15); }
+    function playLand() { playSfx([100, 40], 'triangle', 0.2, 0.25, true); playSfx([80, 20], 'sawtooth', 0.15, 0.15, true); }
+    function playDiceRoll() { for(let i=0; i<6; i++) { setTimeout(() => { playSfx([Math.random()*300+300], 'square', 0.05, 0.08); }, i*35); } }
+    
+    // UPDATED PLAYWINSFX WITH DYNAMIC THRESHOLDS
+    function playWinSfx(amount) {
+        const small = 60 * gameLevel;
+        const medium = 200 * gameLevel;
+        if (amount < small) { 
+            playSfx([1200], 'sine', 0.1, 0.1); setTimeout(() => playSfx([1600], 'sine', 0.1, 0.05), 50); 
+        } else if (amount < medium) { 
+            playSfx([800], 'square', 0.15, 0.1); setTimeout(() => playSfx([1000], 'square', 0.15, 0.1), 80); 
+        } else { 
+            setTimeout(() => playSfx([523], 'triangle', 0.4, 0.2), 0); 
+            setTimeout(() => playSfx([659], 'triangle', 0.4, 0.2), 80); 
+            setTimeout(() => playSfx([783], 'triangle', 0.6, 0.2), 160); 
+        } 
+    }
+
+    function playHitSfx() { playSfx([150, 50], 'sawtooth', 0.1, 0.3, true); }
+    function playCritSfx() { playSfx([400, 800], 'square', 0.15, 0.3, true); }
+    function playWheelTick() { playSfx([800], 'square', 0.05, 0.1); }
+    function playWheelLock() { playSfx([400, 800], 'triangle', 0.2, 0.3, true); }
+    function playChanceJingle() { [440, 554, 659, 880, 1108, 1318].forEach((f, i) => { setTimeout(() => playSfx([f], 'sine', 0.2, 0.2), i * 60); }); }
+    function playCountTick() { playSfx([1200], 'square', 0.05, 0.05); }
+
+    let balance = 0;
+    let playerPos = 0;
+    let gameLevel = 1;
+    let currentSwordMult = 1;
+    let popupLocked = false; 
+    
+    // Initialize Tavern Objects from Config
+    const icons = ["⛺", "🛡️", "🏰", "🔮", "👑"];
+    const names = ["Traveler's Nook", "Mercenary's Rest", "Knight's Hall", "Mage's Tower", "King's Court"];
+    const taverns = GAME_CONFIG.economy.taverns.map((t, i) => ({
+        id: i,
+        name: names[i],
+        level: 0,
+        baseCost: t.base,
+        mult: t.mult,
+        icon: icons[i]
+    }));
+
+    const dragons = [ { name: "Red Dragon", icon: "🐲" }, { name: "Blue Dragon", icon: "🐉" }, { name: "Green Dragon", icon: "🦖" }, { name: "Black Dragon", icon: "🦅" }, { name: "Gold Dragon", icon: "👑" } ];
+    const boardSize = GAME_CONFIG.boardSize;
+    const cells = [];
+    const coords = [];
+    
+    // Board Coordinates
+    for(let i=1; i<=9; i++) coords.push({r:1, c:i});
+    for(let i=2; i<=9; i++) coords.push({r:i, c:9});
+    for(let i=8; i>=1; i--) coords.push({r:9, c:i});
+    for(let i=8; i>=2; i--) coords.push({r:i, c:1});
+
+    function init() {
+        const b = document.getElementById('board');
+        const sideMults = GAME_CONFIG.sideMults; 
+
+        for (let i = 0; i < boardSize; i++) {
+            let sideNum = Math.floor(i / 8); 
+            let sideIdx = i % 8;
+            let type = "win";
+            let label = "GOLD";
+            let mult = sideMults[sideNum]; 
+
+            if (sideIdx === 0) { type = "corner"; label = i===0?"START":"REST"; mult = 0; } 
+            else if (sideIdx === 6) { type = "lose"; label = "TAX"; }
+            else if (i === 4 || i === 20) { type = "railway"; label = "FIGHT"; mult = 0; }
+            else if (i === 12 || i === 28) { type = "fortune"; label = "LUCK"; mult = 0; }
+            else if (i === 2 || i === 18) { type = "chance"; label = "?"; mult = 0; }
+
+            const d = document.createElement('div');
+            d.className = `cell ${type}`;
+            if(i === 2) d.classList.add('top-chance');
+            if(i === 18) d.classList.add('red-chance');
+
+            d.style.gridRow = coords[i].r; d.style.gridColumn = coords[i].c;
+            
+            let html = `<span>${label}</span>`;
+            if (mult > 0) html += `<span class="mult">${mult}x</span>`;
+            d.innerHTML = html;
+            cells.push({ type, mult, el: d });
+            b.appendChild(d);
+        }
+        
+        loadGame(); 
+        updatePlayer();
+        renderTaverns();
+    }
+
+    function updatePlayer() {
+        const t = cells[playerPos].el, p = document.getElementById('player');
+        p.style.top = `${t.offsetTop + (t.offsetHeight/2) - (p.offsetHeight/2)}px`;
+        p.style.left = `${t.offsetLeft + (t.offsetWidth/2) - (p.offsetWidth/2)}px`;
+    }
+
+    function saveGame() {
+        const data = {
+            balance: balance,
+            gameLevel: gameLevel,
+            playerPos: playerPos,
+            tavernLevels: taverns.map(t => t.level)
+        };
+        localStorage.setItem('gildedBladeSave', JSON.stringify(data));
+    }
+
+    function loadGame() {
+        const saved = localStorage.getItem('gildedBladeSave');
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                if (typeof data.balance === 'number') balance = data.balance;
+                if (typeof data.gameLevel === 'number') gameLevel = data.gameLevel;
+                if (typeof data.playerPos === 'number') playerPos = data.playerPos;
+                if (Array.isArray(data.tavernLevels)) {
+                    taverns.forEach((t, i) => {
+                        if (data.tavernLevels[i] !== undefined) t.level = data.tavernLevels[i];
+                    });
+                }
+            } catch (e) {
+                console.error("Save file corrupted");
+            }
+        }
+        updateBalanceUI();
+    }
+
+    function hardReset() {
+        if(confirm("Are you sure? This will wipe all progress.")) {
+            localStorage.removeItem('gildedBladeSave');
+            location.reload();
+        }
+    }
+
+    async function playTurn() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        playDiceRoll();
+        document.getElementById('calc-display').innerText = "...";
+        document.getElementById('main-roll-btn').disabled = true;
+
+        const d1 = Math.floor(Math.random()*6)+1, d2 = Math.floor(Math.random()*6)+1;
+        document.getElementById('d1').innerText = d1; document.getElementById('d2').innerText = d2;
+        document.getElementById('d1').className = `die ${d1===6?'crit':''}`;
+        document.getElementById('d2').className = `die ${d2===6?'crit':''}`;
+        
+        let sw = (d1===6?3:1) * (d2===6?3:1); 
+        currentSwordMult = sw;
+
+        const move = d1 + d2;
+        const p = document.getElementById('player');
+
+        for(let i=0; i<move; i++) {
+            playerPos = (playerPos + 1) % boardSize;
+            p.classList.remove('hopping');
+            void p.offsetWidth;
+            p.classList.add('hopping');
+            if(i === move - 1) playLand(); else playTap();
+            
+            if (playerPos === 0) { 
+                const bonus = GAME_CONFIG.passGoBase * gameLevel; 
+                balance += bonus; 
+                flash(bonus, true); 
+            }
+            updatePlayer();
+            await new Promise(r => setTimeout(r, 150));
+        }
+        
+        saveGame(); 
+
+        const c = cells[playerPos];
+        if (c.type === 'chance') {
+             triggerPickingGame(move); 
+        } else if (c.type === 'railway') {
+             triggerCombat();
+        } else if (c.type === 'fortune') {
+             triggerFortuneWheel(playerPos, move);
+        } else {
+             if (c.mult > 0) {
+                const amt = move * sw * c.mult * gameLevel;
+                updateCalc(move, sw, c.mult);
+                if (c.type === 'win') { balance += amt; flash(amt, true); }
+                else if (balance > 0) { balance -= amt; flash(amt, false); }
+             } else {
+                 document.getElementById('calc-display').innerText = `Landed on ${c.type.toUpperCase()}`;
+             }
+             document.getElementById('main-roll-btn').disabled = false;
+             saveGame(); 
+        }
+        updateBalanceUI();
+    }
+
+    function updateCalc(roll, sword, cell) {
+        const div = document.getElementById('calc-display');
+        let html = `Roll: <span class="calc-part">${roll}</span>`;
+        if (sword > 1) html += ` × Sword: <span class="calc-part">${sword}x</span>`;
+        if (cell > 1) html += ` × Cell: <span class="calc-part">${cell}x</span>`;
+        if (gameLevel > 1) html += ` × Lvl: <span class="calc-part">${gameLevel}x</span>`;
+        div.innerHTML = html;
+    }
+
+    // UPDATED FLASH FUNCTION WITH DYNAMIC THRESHOLDS
+    function flash(amount, isWin) {
+        const container = document.getElementById('flash-container');
+        const el = document.createElement('div');
+        el.className = 'flash-text';
+        
+        const smallThresh = 60 * gameLevel;
+        const medThresh = 200 * gameLevel;
+
+        if (amount < smallThresh) { 
+            el.style.fontSize = "60px"; 
+            el.style.color = "#fff"; 
+            el.style.opacity = "0.7"; 
+        } 
+        else if (amount < medThresh) { 
+            el.style.fontSize = "100px"; 
+            el.style.color = "#fff7bc"; 
+            el.style.textShadow = "0 0 10px gold"; 
+        } 
+        else { 
+            el.style.fontSize = "150px"; 
+            el.style.color = "var(--gold)"; 
+            el.style.textShadow = "0 0 25px gold, 0 0 5px white"; 
+        }
+        
+        if (!isWin) { 
+            el.style.color = "var(--lose)"; el.style.textShadow = "0 0 20px #ff0000"; 
+            playSfx([150, 50], 'sawtooth', 0.4, 0.4, true); 
+        } else { 
+            playWinSfx(amount);
+        }
+        el.innerText = (isWin ? "+" : "-") + amount;
+        container.appendChild(el);
+        setTimeout(() => el.remove(), 1500);
+    }
+
+    let combatTotalGoldEarned = 0; 
+    let combatMobMultiplier = 1;
+    let combatAttackCount = 15;
+
+    function triggerCombat() {
+        let mob = dragons[Math.floor(Math.random() * dragons.length)];
+        combatTotalGoldEarned = 0;
+        
+        const min = GAME_CONFIG.fight.mobMin;
+        const max = GAME_CONFIG.fight.mobMax;
+        combatMobMultiplier = Math.floor(Math.random() * (max - min + 1)) + min;
+
+        const possibleAttacks = GAME_CONFIG.fight.attacks;
+        combatAttackCount = possibleAttacks[Math.floor(Math.random() * possibleAttacks.length)];
+
+        document.getElementById('mob-name').innerText = mob.name; 
+        
+        let swordText = currentSwordMult > 1 ? ` (SWORD: ${currentSwordMult}x)` : "";
+        document.getElementById('mob-mult-display').innerText = `MULTIPLIER: ${combatMobMultiplier}x` + swordText;
+        
+        document.getElementById('enemy-sprite').innerText = mob.icon;
+        document.getElementById('combat-log').innerHTML = ""; 
+        document.getElementById('timer-display').innerText = `${combatAttackCount} Attacks`;
+        document.getElementById('combat-damage-total').innerText = "0";
+
+        document.getElementById('combat-overlay').style.display = 'flex';
+        document.getElementById('btn-attack').innerText = "AUTO BATTLE";
+        document.getElementById('btn-attack').disabled = true;
+
+        const cd = document.getElementById('countdown');
+        let count = 3;
+        cd.innerText = count;
+        let cInt = setInterval(() => {
+            count--;
+            if(count > 0) cd.innerText = count;
+            else {
+                clearInterval(cInt);
+                cd.innerText = "FIGHT!";
+                setTimeout(() => cd.innerText = "", 500);
+                document.getElementById('btn-attack').disabled = false;
+            }
+        }, 800);
+    }
+
+    async function startAutoCombat() {
+        const btn = document.getElementById('btn-attack');
+        btn.disabled = true;
+        btn.innerText = "ATTACKING...";
+        
+        for(let i=combatAttackCount; i>0; i--) {
+            document.getElementById('timer-display').innerText = i + " Left";
+            performAutoAttack();
+            await new Promise(r => setTimeout(r, 120)); 
+        }
+
+        endCombat();
+    }
+
+    function performAutoAttack() {
+        const diceCount = GAME_CONFIG.fight.dice;
+        const sides = GAME_CONFIG.fight.sides;
+        let totalRoll = 0;
+        let crit = false;
+        
+        for(let i=0; i<diceCount; i++) {
+            let r = Math.floor(Math.random()*sides)+1;
+            totalRoll += r;
+            if(r === sides) crit = true;
+        }
+        
+        let critMult = crit ? GAME_CONFIG.fight.critMult : 1;
+        
+        let goldGain = totalRoll * critMult * gameLevel * currentSwordMult * combatMobMultiplier;
+        
+        balance += goldGain; 
+        combatTotalGoldEarned += goldGain;
+        
+        playHitSfx();
+        if(crit) playCritSfx();
+        
+        let floatText = "+$" + goldGain + (crit ? "!" : "");
+        showFloatDmg(floatText, true, crit);
+        
+        const sprite = document.getElementById('enemy-sprite');
+        sprite.style.animation = 'none';
+        sprite.offsetHeight; 
+        sprite.style.animation = 'shakeHit 0.1s';
+        
+        document.getElementById('combat-damage-total').innerText = combatTotalGoldEarned;
+        updateBalanceUI();
+    }
+
+    function showFloatDmg(text, isPlayer, isCrit) {
+        const el = document.createElement('div');
+        el.className = `dmg-float ${isPlayer ? 'dmg-player' : 'dmg-enemy'} ${isCrit ? 'crit-float' : ''}`;
+        el.innerText = text;
+        el.style.left = (isPlayer ? 55 : 25) + (Math.random()*20) + "%";
+        el.style.top = (40 + (Math.random()*20)) + "%";
+        document.getElementById('combat-log').appendChild(el);
+        setTimeout(() => el.remove(), 800);
+    }
+
+    function endCombat() {
+        playChanceJingle(); 
+        document.getElementById('cr-title').innerText = "VICTORY!";
+        document.getElementById('cr-total').innerText = "+$" + combatTotalGoldEarned;
+        
+        popupLocked = true;
+        setTimeout(() => { popupLocked = false; }, 1500);
+
+        document.getElementById('combat-result-popup').style.display = 'flex';
+        updateBalanceUI();
+    }
+
+    function closeCombatResult() {
+        if(popupLocked) return; 
+        document.getElementById('combat-result-popup').style.display = 'none';
+        document.getElementById('combat-overlay').style.display = 'none';
+        document.getElementById('main-roll-btn').disabled = false;
+        saveGame();
+    }
+
+    // --- WHEEL FORTUNE GAME ---
+    let wheelResults = [];
+    let wheelsLocked = [];
+    let pendingChancePrize = 0;
+    let luckBaseMove = 0;
+
+    function triggerFortuneWheel(pos, rollAmount) {
+        wheelResults = [];
+        wheelsLocked = [];
+        luckBaseMove = rollAmount;
+        
+        const container = document.getElementById('wheels-area');
+        container.innerHTML = "";
+        
+        // Tile 12 = t12Count (3), Tile 28 = t28Count (4)
+        let numWheels = (pos === 12) ? GAME_CONFIG.wheels.t12Count : GAME_CONFIG.wheels.t28Count;
+        const configs = GAME_CONFIG.wheels.ranges;
+
+        for(let i=0; i<numWheels; i++) {
+            wheelsLocked.push(false);
+            wheelResults.push(0);
+            let range = configs[i];
+            
+            let wDiv = document.createElement('div');
+            wDiv.className = 'wheel';
+            wDiv.id = `wheel-${i}`;
+            wDiv.onclick = () => spinWheel(i, range.min, range.max);
+            wDiv.innerHTML = `<span class="wheel-val">?</span><span class="wheel-label">${range.min}x-${range.max}x</span>`;
+            container.appendChild(wDiv);
+        }
+
+        document.getElementById('wheel-result-text').innerText = "Tap wheels to spin!";
+        document.getElementById('wheel-overlay').style.display = 'flex';
+    }
+
+    function spinWheel(idx, min, max) {
+        if(wheelsLocked[idx]) return;
+        wheelsLocked[idx] = true;
+        
+        const wDiv = document.getElementById(`wheel-${idx}`);
+        const valSpan = wDiv.querySelector('.wheel-val');
+        
+        let frames = 0;
+        let maxFrames = 15 + Math.random() * 10;
+        
+        const interval = setInterval(() => {
+            let val = Math.floor(Math.random() * (max - min + 1)) + min;
+            valSpan.innerText = val + "x";
+            playWheelTick();
+            frames++;
+            if(frames > maxFrames) {
+                clearInterval(interval);
+                wheelResults[idx] = val;
+                wDiv.classList.add('locked');
+                playWheelLock();
+                checkWheelsComplete();
+            }
+        }, 60);
+    }
+
+    function checkWheelsComplete() {
+        if(wheelsLocked.every(Boolean)) {
+            const wheelsTotal = wheelResults.reduce((a,b) => a*b, 1);
+            const baseAmount = luckBaseMove; 
+            const totalWin = baseAmount * wheelsTotal * gameLevel * currentSwordMult;
+            
+            pendingChancePrize = totalWin;
+            
+            document.getElementById('wheel-result-text').innerText = `Total Multiplier: ${wheelsTotal}x`;
+            
+            setTimeout(() => {
+                document.getElementById('c-win-title').innerText = "FORTUNE WIN";
+                document.getElementById('c-calc-header').innerText = "DiceBase x Wheels x Sword x Level";
+                let breakdownText = `<span class="c-calc-val">${baseAmount}</span><span class="c-calc-op">×</span>` +
+                                    `<span class="c-calc-val">${wheelsTotal}x</span><span class="c-calc-op">×</span>` +
+                                    `<span class="c-calc-val">${currentSwordMult}x</span><span class="c-calc-op">×</span>` +
+                                    `<span class="c-calc-val">${gameLevel}x</span>`;
+
+                document.getElementById('c-breakdown').innerHTML = breakdownText;
+                document.getElementById('c-popup-amount').innerText = "$0";
+                
+                popupLocked = true;
+                setTimeout(() => { popupLocked = false; }, 1500);
+
+                document.getElementById('chance-win-popup').style.display = 'flex';
+                playChanceJingle();
+                animateChanceCount(pendingChancePrize);
+            }, 1000);
+        }
+    }
+
+    // --- NEW PICKING BONUS GAME (TREASURE TROVE) ---
+    let picksLeft = 3;
+    let pickBase = 0;
+    let pickAdditions = 0;
+    let pickMultipliers = 1;
+    let gridRewards = [];
+    let tilesClicked = [];
+
+    function triggerPickingGame(baseRoll) {
+        pickBase = baseRoll;
+        pickAdditions = 0;
+        pickMultipliers = 1;
+        picksLeft = 3;
+        tilesClicked = new Array(9).fill(false);
+        
+        // Generate rewards
+        gridRewards = [
+            { type: 'add', val: 10 }, { type: 'add', val: 20 },
+            { type: 'add', val: 30 }, { type: 'add', val: 40 },
+            { type: 'add', val: 50 },
+            { type: 'mult', val: 2 }, { type: 'mult', val: 3 },
+            { type: 'mult', val: 5 }, { type: 'mult', val: 10 }
+        ];
+        
+        // Shuffle
+        for (let i = gridRewards.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [gridRewards[i], gridRewards[j]] = [gridRewards[j], gridRewards[i]];
+        }
+
+        // Setup UI
+        document.getElementById('pick-base').innerText = pickBase;
+        document.getElementById('pick-adds').innerText = "0";
+        document.getElementById('pick-mult').innerText = "1";
+        document.getElementById('pick-lvl').innerText = gameLevel;
+        document.getElementById('pick-sw').innerText = currentSwordMult;
+        document.getElementById('picks-count').innerText = picksLeft;
+        
+        updatePickTotal();
+        renderPickGrid();
+        
+        document.getElementById('picking-overlay').style.display = 'flex';
+    }
+
+    function renderPickGrid() {
+        const grid = document.getElementById('pick-grid');
+        grid.innerHTML = "";
+        gridRewards.forEach((r, idx) => {
+            const tile = document.createElement('div');
+            tile.className = 'pick-tile';
+            tile.innerText = "?";
+            tile.onclick = () => onTileClicked(idx, tile);
+            grid.appendChild(tile);
+        });
+    }
+
+    function onTileClicked(idx, el) {
+        if(picksLeft <= 0 || tilesClicked[idx]) return;
+        
+        tilesClicked[idx] = true;
+        picksLeft--;
+        document.getElementById('picks-count').innerText = picksLeft;
+        
+        const r = gridRewards[idx];
+        el.classList.add('revealed');
+        
+        playWheelTick();
+        
+        if (r.type === 'add') {
+            pickAdditions += r.val;
+            el.classList.add('add');
+            el.innerText = "+" + r.val;
+        } else {
+            pickMultipliers *= r.val;
+            el.classList.add('mult');
+            el.innerText = "x" + r.val;
+        }
+        
+        document.getElementById('pick-adds').innerText = pickAdditions;
+        document.getElementById('pick-mult').innerText = pickMultipliers + "x";
+        
+        updatePickTotal();
+        
+        if (picksLeft === 0) {
+            setTimeout(endPickingGame, 1000);
+        }
+    }
+
+    function updatePickTotal() {
+        const total = (pickBase + pickAdditions) * pickMultipliers * gameLevel * currentSwordMult;
+        document.getElementById('pick-total-val').innerText = total;
+    }
+
+    function endPickingGame() {
+        const totalWin = (pickBase + pickAdditions) * pickMultipliers * gameLevel * currentSwordMult;
+        pendingChancePrize = totalWin;
+        
+        document.getElementById('picking-overlay').style.display = 'none';
+        
+        document.getElementById('c-win-title').innerText = "TREASURE WIN";
+        document.getElementById('c-calc-header').innerText = "(Roll + Adds) x Mults x Level x Sword";
+        let breakdownText = `<span class="c-calc-val">${pickBase + pickAdditions}</span><span class="c-calc-op">×</span>` +
+                            `<span class="c-calc-val">${pickMultipliers}x</span><span class="c-calc-op">×</span>` +
+                            `<span class="c-calc-val">${gameLevel}x</span><span class="c-calc-op">×</span>` +
+                            `<span class="c-calc-val">${currentSwordMult}x</span>`;
+
+        document.getElementById('c-breakdown').innerHTML = breakdownText;
+        document.getElementById('c-popup-amount').innerText = "$0";
+        
+        popupLocked = true;
+        setTimeout(() => { popupLocked = false; }, 1500);
+
+        document.getElementById('chance-win-popup').style.display = 'flex';
+        playChanceJingle();
+        animateChanceCount(pendingChancePrize);
+    }
+
+    function animateChanceCount(target) {
+        let start = 0;
+        let duration = 1500;
+        let startTime = null;
+        let el = document.getElementById('c-popup-amount');
+        let lastTick = 0;
+        function animation(currentTime) {
+            if (!startTime) startTime = currentTime;
+            let progress = currentTime - startTime;
+            let percent = Math.min(progress / duration, 1);
+            let ease = 1 - Math.pow(1 - percent, 3); 
+            let currentVal = Math.floor(start + (target - start) * ease);
+            el.innerText = "$" + currentVal;
+            if (currentTime - lastTick > 60) { playCountTick(); lastTick = currentTime; }
+            if (percent < 1) { requestAnimationFrame(animation); } else { el.innerText = "$" + target; }
+        }
+        requestAnimationFrame(animation);
+    }
+
+    function collectChanceWin() {
+        if(popupLocked) return; 
+        balance += pendingChancePrize;
+        playWinSfx(pendingChancePrize);
+        updateBalanceUI();
+        document.getElementById('chance-win-popup').style.display = 'none';
+        document.getElementById('wheel-overlay').style.display = 'none';
+        document.getElementById('picking-overlay').style.display = 'none';
+        document.getElementById('main-roll-btn').disabled = false;
+        saveGame();
+    }
+
+    function updateBalanceUI() {
+        document.getElementById('balance').innerText = Math.max(0, balance);
+        document.getElementById('level-display').innerText = gameLevel + "x";
+        renderTaverns(); 
+    }
+
+    function switchView(viewName) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.getElementById(`view-${viewName}`).classList.add('active');
+        document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+        const btnIdx = viewName === 'game' ? 0 : 1;
+        document.querySelectorAll('.nav-btn')[btnIdx].classList.add('active');
+    }
+
+    function getTavernCost(tav) {
+        // Growth Curve: 1.5 -> 1.5 -> 1.4 -> 1.4 -> 1.3 -> 1.3 -> 1.2
+        let levelScaler = 1;
+        let currentGrowth = 1.5; // Start at 1.5x
+
+        for (let i = 1; i < gameLevel; i++) {
+            levelScaler *= currentGrowth;
+            // Decrease by 0.1 every 2 levels (when i is even: 2, 4, 6...)
+            if (i % 2 === 0) {
+                currentGrowth = Math.max(1.2, currentGrowth - 0.1);
+            }
+        }
+
+        const currentLevelBase = tav.baseCost * levelScaler;
+        return Math.floor(currentLevelBase * Math.pow(tav.mult, tav.level));
+    }
+
+    function renderTaverns() {
+        const container = document.getElementById('tavern-list');
+        container.innerHTML = "";
+        taverns.forEach((tav) => {
+            const cost = getTavernCost(tav);
+            const canAfford = balance >= cost && tav.level < 5;
+            const isMaxed = tav.level >= 5;
+            const card = document.createElement('div');
+            card.className = "tavern-card";
+            let stepsHtml = '';
+            for(let i=0; i<5; i++) stepsHtml += `<div class="step ${i < tav.level ? 'filled' : ''}"></div>`;
+            card.innerHTML = `
+                <div class="tavern-img">${tav.icon}</div>
+                <div class="tavern-details">
+                    <span class="tavern-name">${tav.name}</span>
+                    <div class="progress-steps">${stepsHtml}</div>
+                </div>
+                <button class="btn-upgrade-compact" onclick="buyUpgrade(${tav.id})" ${canAfford ? '' : 'disabled'}>
+                    <span>${isMaxed ? 'MAX' : 'UPGRADE'}</span>
+                    <span class="cost-text">${isMaxed ? '' : '$'+cost}</span>
+                </button>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function buyUpgrade(id) {
+        const tav = taverns[id];
+        const cost = getTavernCost(tav);
+        if (balance >= cost && tav.level < 5) {
+            balance -= cost;
+            tav.level++;
+            playSfx([150, 100], 'square', 0.1, 0.5); 
+            if (taverns.every(t => t.level === 5)) {
+                triggerLevelUp();
+            } else {
+                updateBalanceUI();
+            }
+            saveGame();
+        }
+    }
+
+    function triggerLevelUp() {
+        gameLevel++;
+        taverns.forEach(t => t.level = 0);
+        saveGame();
+        alert(`LEVEL ${gameLevel} REACHED!\nMultipliers and Costs have increased!`);
+        updateBalanceUI();
+    }
+
+    window.addEventListener('resize', updatePlayer);
+    init();
+</script>
+</body>
+</html>
