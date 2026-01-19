@@ -785,7 +785,7 @@
         document.getElementById('cr-total').innerText = "+$" + combatTotalGoldEarned;
         
         popupLocked = true;
-        setTimeout(() => { popupLocked = false; }, 1500);
+        setTimeout(() => { popupLocked = false; }, 150);
 
         document.getElementById('combat-result-popup').style.display = 'flex';
         updateBalanceUI();
@@ -881,7 +881,7 @@
                 document.getElementById('c-popup-amount').innerText = "$0";
                 
                 popupLocked = true;
-                setTimeout(() => { popupLocked = false; }, 1500);
+                setTimeout(() => { popupLocked = false; }, 150);
 
                 document.getElementById('chance-win-popup').style.display = 'flex';
                 playChanceJingle();
@@ -1009,7 +1009,7 @@
 
     function animateChanceCount(target) {
         let start = 0;
-        let duration = 1500;
+        let duration = 500;
         let startTime = null;
         let el = document.getElementById('c-popup-amount');
         let lastTick = 0;
@@ -1060,7 +1060,7 @@
         for (let i = 1; i < gameLevel; i++) {
             levelScaler *= currentGrowth;
             // Decrease by 0.1 every 2 levels (when i is even: 2, 4, 6...)
-            if (i % 2 === 0) {
+            if (i % 3 === 0) {
                 currentGrowth = Math.max(1.2, currentGrowth - 0.1);
             }
         }
