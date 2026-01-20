@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Gilded Blade Tavern</title>
+    <title>Monoply GO! - Taverns & Dragons</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Almendra:wght@700&family=MedievalSharp&display=swap');
 
@@ -1053,15 +1053,15 @@
     }
 
     function getTavernCost(tav) {
-        // Growth Curve: 1.5 -> 1.5 -> 1.4 -> 1.4 -> 1.3 -> 1.3 -> 1.2
+       
         let levelScaler = 1;
-        let currentGrowth = 1.5; // Start at 1.5x
+        let currentGrowth = 2; 
 
         for (let i = 1; i < gameLevel; i++) {
             levelScaler *= currentGrowth;
-            // Decrease by 0.1 every 2 levels (when i is even: 2, 4, 6...)
-            if (i % 3 === 0) {
-                currentGrowth = Math.max(1.2, currentGrowth - 0.1);
+            // Decrease by 0.2 every 2 levels (when i is even: 2, 4, 6...)
+            if (i % 2 === 0) {
+                currentGrowth = Math.max(1.1, currentGrowth - 0.2);
             }
         }
 
