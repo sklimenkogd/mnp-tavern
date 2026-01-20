@@ -424,11 +424,11 @@
         economy: {
             // ~1.5x cheaper base prices (330 to 1330 range)
             taverns: [
-                { base: 330, mult: 1.5 },
-                { base: 500, mult: 1.5 },
-                { base: 660, mult: 1.5 },
-                { base: 1000, mult: 1.5 },
-                { base: 1330, mult: 1.5 }
+                { base: 500, mult: 1.2 },
+                { base: 600, mult: 1.2 },
+                { base: 700, mult: 1.2 },
+                { base: 800, mult: 1.2 },
+                { base: 1000, mult: 1.2 }
             ]
         }
     };
@@ -891,7 +891,7 @@
     }
 
     // --- NEW PICKING BONUS GAME (TREASURE TROVE) ---
-    let picksLeft = 3;
+    let picksLeft = 4;
     let pickBase = 0;
     let pickAdditions = 0;
     let pickMultipliers = 1;
@@ -902,7 +902,7 @@
         pickBase = baseRoll;
         pickAdditions = 0;
         pickMultipliers = 1;
-        picksLeft = 3;
+        picksLeft = 4;
         tilesClicked = new Array(9).fill(false);
         
         // Generate rewards
